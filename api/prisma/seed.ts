@@ -2,64 +2,65 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const genres = [
-  { name: "Fiction", slug: "fiction" },
-  { name: "Science", slug: "science" },
-  { name: "History", slug: "history" },
-  { name: "Technology", slug: "technology" },
-];
+const genreNames = ["Fantasy", "Science Fiction", "Mystery", "Biography"];
 
-const books = [
-  // Fiction
-  { title: "Things Fall Apart", author: "Chinua Achebe", isbn: "9780385474542", genre: "fiction" },
-  { title: "Weep Not, Child", author: "Ngugi wa Thiong'o", isbn: "9780435908355", genre: "fiction" },
-  { title: "The River Between", author: "Ngugi wa Thiong'o", isbn: "9780435905484", genre: "fiction" },
-  { title: "Half of a Yellow Sun", author: "Chimamanda Ngozi Adichie", isbn: "9781400095209", genre: "fiction" },
-  // Science
-  { title: "A Brief History of Time", author: "Stephen Hawking", isbn: "9780553380163", genre: "science" },
-  { title: "The Selfish Gene", author: "Richard Dawkins", isbn: "9780198788607", genre: "science" },
-  { title: "Cosmos", author: "Carl Sagan", isbn: "9780345539434", genre: "science" },
-  { title: "The Gene", author: "Siddhartha Mukherjee", isbn: "9781476733500", genre: "science" },
-  // History
-  { title: "Sapiens", author: "Yuval Noah Harari", isbn: "9780062316110", genre: "history" },
-  { title: "Guns, Germs, and Steel", author: "Jared Diamond", isbn: "9780393317558", genre: "history" },
-  { title: "Facing Mount Kenya", author: "Jomo Kenyatta", isbn: "9780436234002", genre: "history" },
-  { title: "Born a Crime", author: "Trevor Noah", isbn: "9780399588174", genre: "history" },
-  // Technology
-  { title: "Clean Code", author: "Robert C. Martin", isbn: "9780132350884", genre: "technology" },
-  { title: "The Pragmatic Programmer", author: "Andrew Hunt and David Thomas", isbn: "9780135957059", genre: "technology" },
-  { title: "Designing Data-Intensive Applications", author: "Martin Kleppmann", isbn: "9781449373320", genre: "technology" },
-  { title: "Eloquent JavaScript", author: "Marijn Haverbeke", isbn: "9781593279509", genre: "technology" },
+const sampleBooks = [
+  // Fantasy
+  { title: "The Hobbit", author: "J.R.R. Tolkien", genre: "Fantasy", isbn: "9780547928227" },
+  { title: "A Wizard of Earthsea", author: "Ursula K. Le Guin", genre: "Fantasy", isbn: "9780547773742" },
+  { title: "The Name of the Wind", author: "Patrick Rothfuss", genre: "Fantasy", isbn: "9780756404741" },
+  { title: "Mistborn: The Final Empire", author: "Brandon Sanderson", genre: "Fantasy", isbn: "9780765311788" },
+  // Science Fiction
+  { title: "Dune", author: "Frank Herbert", genre: "Science Fiction", isbn: "9780441172719" },
+  { title: "Neuromancer", author: "William Gibson", genre: "Science Fiction", isbn: "9780441569595" },
+  { title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", genre: "Science Fiction", isbn: "9780441478125" },
+  { title: "Foundation", author: "Isaac Asimov", genre: "Science Fiction", isbn: "9780553293357" },
+  // Mystery
+  { title: "The Big Sleep", author: "Raymond Chandler", genre: "Mystery", isbn: "9780394758282" },
+  { title: "The Hound of the Baskervilles", author: "Arthur Conan Doyle", genre: "Mystery", isbn: "9780141034317" },
+  { title: "And Then There Were None", author: "Agatha Christie", genre: "Mystery", isbn: "9780062073488" },
+  { title: "The Girl with the Dragon Tattoo", author: "Stieg Larsson", genre: "Mystery", isbn: "9780307454546" },
+  // Biography
+  { title: "Educated", author: "Tara Westover", genre: "Biography", isbn: "9780399590504" },
+  { title: "Long Walk to Freedom", author: "Nelson Mandela", genre: "Biography", isbn: "9780316548182" },
+  { title: "Dreams from My Father", author: "Barack Obama", genre: "Biography", isbn: "9781400082773" },
+  { title: "Born a Crime", author: "Trevor Noah", genre: "Biography", isbn: "9780399588174" },
 ];
 
 async function main() {
-  const genreIds: Record<string, number> = {};
+  const genreMap = new Map<string, number>();
 
-  for (const g of genres) {
+  for (const name of genreNames) {
     const genre = await prisma.genre.upsert({
-      where: { slug: g.slug },
+      where: { name },
       update: {},
-      create: g,
+      create: { name, slug: name.toLowerCase().replace(/\s+/g, "-") },
     });
-    genreIds[g.slug] = genre.id;
+    genreMap.set(name, genre.id);
   }
 
-  for (const b of books) {
+  for (const book of sampleBooks) {
+    const genreId = genreMap.get(book.genre);
+    if (genreId === undefined) {
+      throw new Error(`Unknown genre: ${book.genre}`);
+    }
+
     await prisma.book.upsert({
-      where: { isbn: b.isbn },
+      where: { isbn: book.isbn },
       update: {},
       create: {
-        title: b.title,
-        author: b.author,
-        isbn: b.isbn,
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        description: `${book.title} by ${book.author}.`,
         totalCopies: 3,
         availableCopies: 3,
-        genreId: genreIds[b.genre],
+        genreId,
       },
     });
   }
 
-  console.log(`Seeded ${genres.length} genres and ${books.length} books`);
+  console.log(`Seeded ${genreNames.length} genres and ${sampleBooks.length} books.`);
 }
 
 main()

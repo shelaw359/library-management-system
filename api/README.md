@@ -28,12 +28,11 @@ PostgreSQL is a relational database, so relationships between entities are expre
 
 - `Role` is an enum (`PATRON`, `LIBRARIAN`) so the database rejects any other value. New users default to `PATRON`.
 - `isbn` (Book), `email` (User), and `name`/`slug` (Genre) are `@unique` so duplicates are rejected at the database level.
-- `User` stores `passwordHash`, never a plain password.
+- `User.password` is meant to hold a hashed password, never plain text.
 - `availableCopies` is tracked separately from `totalCopies` so borrowing can reduce availability without losing the total.
+- `Book.genreId` is indexed because filtering books by genre is a core query.
 - The seed script uses `upsert`, so it can be run repeatedly without unique-constraint errors.
 
-## Stretch Notes
-
-**Review model:** `Review` links `Book` and `User` with `bookId` and `userId` foreign keys (rating, optional comment).
+## Reflection
 
 **Prisma vs. a document database:** In a document database I would have been tempted to nest the genre inside each book document. Prisma pushed me to model genres as their own table and link to them, and the schema file became the single source of truth for the tables, the types, and the relationships.
